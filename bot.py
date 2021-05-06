@@ -1,68 +1,79 @@
 ﻿import logging
+import os
+
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import ForceReply
-import os
-PORT = int(os.environ.get('PORT', 8443))
 
-# Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-
-logger = logging.getLogger(__name__)
-TOKEN = '1765524728:AAHaEI8wL5Y2Fos2t6ye0j5dENYOS5sAjkQ'
-WEBHOOK_URL = 'https://guarded-savannah-59373.herokuapp.com/'
-
-# Define a few command handlers. These usually take the two arguments update and
-# context. Error handlers also receive the raised TelegramError object in error.
+#------------------------------------------------------------------------------------------
+# Обработчик команды /start
+# Инфу об объекте update смотри в доке: https://core.telegram.org/bots/api#getting-updates
+#------------------------------------------------------------------------------------------
 def start(update, context):
-    """Send a message when the command /start is issued."""
     user = update.effective_user
     update.message.reply_markdown_v2(
         fr'Hi {user.mention_markdown_v2()}\!',
         reply_markup=ForceReply(selective=True),
     )
 
+#------------------------------------------------------------------------------------------
+# Обработчик команды /help
+#------------------------------------------------------------------------------------------
 def help(update, context):
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
+    update.message.reply_text('Sorry, "help" does not work yet')
 
-def echo(update, context):
-    """Echo the user message."""
-    update.message.reply_text(update.message.text)
+#------------------------------------------------------------------------------------------
+# Обработчик по дефолту
+#------------------------------------------------------------------------------------------
+def default(update, context):
+    update.message.reply_text('Use command /help')
 
+#------------------------------------------------------------------------------------------
+# Обработчик ошибок бота
+#------------------------------------------------------------------------------------------
 def error(update, context):
-    """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
+#------------------------------------------------------------------------------------------
+# От сюда скрипт начинает выполняться
+#------------------------------------------------------------------------------------------
 def main():
-    """Start the bot."""
-    # Create the Updater and pass it your bot's token.
-    # Make sure to set use_context=True to use the new context based callbacks
-    # Post version 12 this will no longer be necessary
-    updater = Updater(TOKEN, use_context=True)
+    # Настраиваем логгер
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
-    # Get the dispatcher to register handlers
+    # Устанавливаем порт, на котором будет висеть скрипт бота
+    PORT = int(os.environ.get('PORT', 8443))    
+ 
+    # Токен доступа к боту в телеграм, с ним нужно делать все HTTP-запросы
+    TOKEN = '1765524728:AAHaEI8wL5Y2Fos2t6ye0j5dENYOS5sAjkQ'
+
+    # Это адрес твоего скрипта в Heroku, телеграм будет отправлять сюда всё, что пользователи напишут боту
+    WEBHOOK_URL = 'https://guarded-savannah-59373.herokuapp.com/'    
+
+    # Создаем бота
+    updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
 
-    # on different commands - answer in Telegram
+    # Прикручиваем к нему наши обработчики команд,
+    # которые мы определили выше над функцией main
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
 
-    # on noncommand i.e message - echo the message on Telegram
-    dp.add_handler(MessageHandler(Filters.text, echo))
+    # Если пользователь написал произвольный текст,
+    # который не распознался как команда, то сработает дефолтный обработчик
+    dp.add_handler(MessageHandler(Filters.text, default))
 
-    # log all errors
+    # Прикручиваем обработчик ошибок
     dp.add_error_handler(error)
 
-    # Start the Bot
+    # Устанавливаем вебхук, на который телеграм будет присылать все сообщения
     updater.start_webhook(listen="0.0.0.0",
                           port=int(PORT),
                           url_path=TOKEN,
                           webhook_url=WEBHOOK_URL + TOKEN)
 
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
+    # Запускаем бота
+    # Теперь скрипт будет висеть в памяти, пока мы сами его не убьем
     updater.idle()
 
 if __name__ == '__main__':
