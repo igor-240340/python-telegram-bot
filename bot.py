@@ -1,5 +1,5 @@
 ﻿import logging
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ForceReply
 import os
 PORT = int(os.environ.get('PORT', 8443))
 
